@@ -6,26 +6,40 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.urlshort.redis.RedisService;
+
 import jakarta.transaction.Transactional;
 
 @Service
 public class UrlService {
 
     private static final String BASE_URL = "http://localhost:8080/url/sho.rt/";
+    private static final String REDIS_KEY_PREFIX = "url:";
     private static final int SHORT_CODE_LENGTH = 8;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom secureRandom = new SecureRandom();
 
     private final UrlRepository urlRepository;
+    private final RedisService redisService;
 
-    public UrlService(UrlRepository urlRepository) {
+    public UrlService(UrlRepository urlRepository, RedisService redisService) {
         this.urlRepository = urlRepository;
+        this.redisService = redisService;
     }
 
     @Transactional
     public String getLongUrl(String shortCode) {
+        String cacheKey = REDIS_KEY_PREFIX + shortCode;
+
+        Optional<String> cachedUrl = redisService.get(cacheKey);
+        if (cachedUrl.isPresent()) {
+            return cachedUrl.get();
+        }
+
         UrlEntity url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Short URL not found"));
+
+        redisService.set(cacheKey, url.getLongUrl());
         return url.getLongUrl();
     }
 
