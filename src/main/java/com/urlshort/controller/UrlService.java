@@ -4,6 +4,7 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.urlshort.redis.RedisService;
@@ -13,7 +14,6 @@ import jakarta.transaction.Transactional;
 @Service
 public class UrlService {
 
-    private static final String BASE_URL = "http://localhost:8080/url/sho.rt/";
     private static final String REDIS_KEY_PREFIX = "url:";
     private static final int SHORT_CODE_LENGTH = 8;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -21,10 +21,15 @@ public class UrlService {
 
     private final UrlRepository urlRepository;
     private final RedisService redisService;
+    private final String baseUrl;
 
-    public UrlService(UrlRepository urlRepository, RedisService redisService) {
+    public UrlService(
+            UrlRepository urlRepository,
+            RedisService redisService,
+            @Value("${app.base-url}") String baseUrl) {
         this.urlRepository = urlRepository;
         this.redisService = redisService;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
     }
 
     @Transactional
@@ -50,14 +55,14 @@ public class UrlService {
         Optional<UrlEntity> existing = urlRepository.findByLongUrl(longUrl);
 
         if (existing.isPresent()) {
-            return BASE_URL + existing.get().getShortCode();
+            return baseUrl + existing.get().getShortCode();
         }
 
         String shortCode = generateUniqueShortCode();
         UrlEntity url = new UrlEntity(longUrl, shortCode);
         urlRepository.save(url);
 
-        return BASE_URL + shortCode;
+        return baseUrl + shortCode;
     }
 
     public void validateUrl(String longUrl) {
