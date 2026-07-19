@@ -10,7 +10,7 @@ env:
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: url-shortner-be
   ECS_CLUSTER: url-shortner-cluster
-  ECS_SERVICE: url-shortner-be-service-kzch1by2
+  ECS_SERVICE: url-shortner-be-service-kpch1by2
 
 jobs:
   build:
